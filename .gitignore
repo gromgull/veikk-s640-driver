@@ -1,7 +1,3 @@
-*
-
-!veikk.c
-!.gitignore
-!config.sh
-!README.md
-!Makefile
+.*.swp
+.cache.mk
+config/config

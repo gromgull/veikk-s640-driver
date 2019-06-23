@@ -43,6 +43,8 @@ If you are getting a `Required key not available` error, please see [this issue]
 
 ### Configuration (very beta)
 
+#### Command line version
+
 Run the configuration utility and follow the instructions to change a setting. Note that this is very beta, so input validation doesn't exist yet and data will not be saved after reloading the module or restarting. Those updates will come with the visual configuration utility.
 
     ./config.sh
@@ -65,6 +67,16 @@ Configuration options:
     - `2`: power function, `n=1/2` (`p_out = sqrt(p_raw)`)
     - `3`: power function, `n=2` (`p_out = p_raw^2`)
     - `4`: linear mapping, reduced input pressure (`p_out = min(4/3 * p_raw, p_max)`)
+
+#### GUI (alpha, incomplete)
+
+To compile, make sure you have `pkg-config` and `libgtk-3-dev` installed, and then navigate to the `config` directory and run:
+
+    gcc `pkg-config --cflags gtk+-3.0` -o config config.c `pkg-config --libs gtk+-3.0
+
+To run, make sure you are in the `config` directory and run:
+
+    ./config
 
 ---
 
