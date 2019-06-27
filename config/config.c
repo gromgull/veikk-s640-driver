@@ -1,22 +1,60 @@
 #include <gtk/gtk.h>
+#include <stdlib.h>
 
+// struct to add another panel
 struct veikk_option_panel {
   const gchar *title;
-  GtkWidget *box, *label;
+  GtkWidget *box, **widgets;
+};
+
+// orientation panel
+static void customize_panel_1(struct veikk_option_panel *panel) {
+  GtkWidget *label, *grid,
+            *rad0, *rad1, *rad2, *rad3;
+
+  panel->title = "Orientation";
+
+  label = gtk_label_new(panel->title);
+  gtk_box_pack_start(GTK_BOX(panel->box), label, 0, 0, 0);
+
+  grid = gtk_grid_new();
+  gtk_box_pack_start(GTK_BOX(panel->box), grid, 0, 0, 0);
+
+  rad0 = gtk_radio_button_new_with_label(NULL, "Default");
+  rad1 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(rad0), "Orientation 2");
+  rad2 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(rad0), "Orientation 3");
+  rad3 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(rad0), "Orientation 4");
+
+  gtk_grid_attach(GTK_GRID(grid), rad0, 0, 0, 1, 1);
+  gtk_grid_attach(GTK_GRID(grid), rad1, 1, 0, 1, 1);
+  gtk_grid_attach(GTK_GRID(grid), rad2, 0, 1, 1, 1);
+  gtk_grid_attach(GTK_GRID(grid), rad3, 1, 1, 1, 1);
+
+  // create a grid pane of the four orientations
+  // TODO: add images / graphics
+  panel->widgets = (GtkWidget *[6]) { label, grid, rad0, rad1, rad2, rad3 };
+}
+// screen mapping panel
+static void customize_panel_2(struct veikk_option_panel *panel) {
+  panel->title = "Screen mapping";
+}
+// pressure mapping panel
+static void customize_panel_3(struct veikk_option_panel *panel) {
+  panel->title = "Pressure mapping";
+}
+void (*customize_panel[])() = {
+  customize_panel_1,
+  customize_panel_2,
+  customize_panel_3
 };
 
 static void activate(GtkApplication *app, gpointer user_data) {
   GtkWidget *window,
             *layout_box,
             *sidebar,
-            *stack,
-            *label1;
+            *stack;
   gint i, panels_count;
-  struct veikk_option_panel panels[] = {
-    { .title = "Orientation" },
-    { .title = "Screen Mapping" },
-    { .title = "Pressure Mapping" }
-  };
+  struct veikk_option_panel panels[3];
   panels_count = sizeof panels / sizeof (struct veikk_option_panel);
   
   // window and layout box as general layout
@@ -38,11 +76,12 @@ static void activate(GtkApplication *app, gpointer user_data) {
 
   // add options
   for(i = 0; i < panels_count; i++) {
+    // create box and customize panel
     panels[i].box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-    gtk_stack_add_titled(GTK_STACK(stack), panels[i].box, panels[i].title, panels[i].title);
+    customize_panel[i](&panels[i]);
 
-    panels[i].label = gtk_label_new(panels[i].title);
-    gtk_box_pack_start(GTK_BOX(panels[i].box), panels[i].label, 0, 0, 0);
+    // add panel to stack
+    gtk_stack_add_titled(GTK_STACK(stack), panels[i].box, panels[i].title, panels[i].title);
   }
 
   // show
