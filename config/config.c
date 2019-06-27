@@ -1,8 +1,12 @@
 #include <gtk/gtk.h>
 #include <stdlib.h>
 
-// settings enums
-enum orientation { DEFAULT, ROT_RIGHT, REVERSED, ROT_LEFT };
+// useful enums
+enum setting { SET_ORIENTATION, SET_MAP_SCREEN, SET_MAP_PRESSURE };
+
+// orientation corresponds directl with the number in the param file,
+// so can write enum value directly to file
+enum orientation { ORI_DEFAULT, ORI_ROT_RIGHT, ORI_REVERSED, ORI_ROT_LEFT };
 
 // struct to add another panel
 struct veikk_option_panel {
@@ -10,36 +14,61 @@ struct veikk_option_panel {
   GtkWidget *box, **widgets;
 };
 
+// write to a setting
+void write_setting(enum setting setting, const char *setting_text) {
+  FILE *sysfs_param_handle = NULL;
+  
+  switch(setting) {
+    case SET_ORIENTATION:
+      sysfs_param_handle = fopen("/sys/module/veikk/parameters/orientation", "w");
+      break;
+    default:
+      return g_print("Write to other settings not implemented yet.\n");
+  }
+
+  if(sysfs_param_handle == NULL) {
+    g_print("Error: could not open file. Make sure to run as root.\n");
+  } else {
+    fprintf(sysfs_param_handle, "%s", setting_text);
+    fclose(sysfs_param_handle);
+    g_print("Setting written: %s.\n", setting_text);
+  }
+}
+
 // radio button callback
-static void test(GtkRadioButton *rad, gpointer user_data) {
-  enum orientation orientation = *((enum orientation *) user_data);
+void orientation_radio_callback(GtkRadioButton *rad, gpointer user_data) {
+  char orientation_text[2];
+  // casting from void pointer -- is this safe?
+  enum orientation orientation = (enum orientation) user_data;
 
   // return if toggling off
   if(!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(rad))) {
     return;
   }
 
-  // deal with changing orientation
+  // deal with changing orientation: write to sysfs parameter
   switch(orientation) {
-    case DEFAULT:
+    case ORI_DEFAULT:
       g_print("Default orientation selected.\n");
       break;
-    case ROT_RIGHT:
+    case ORI_ROT_RIGHT:
       g_print("Right orientation selected.\n");
       break;
-    case REVERSED:
+    case ORI_REVERSED:
       g_print("Reversed orientation selected.\n");
       break;
-    case ROT_LEFT:
+    case ORI_ROT_LEFT:
       g_print("Left orientation selected.\n");
       break;
     default:
-      g_print("Error: Orientation not found.\n");
+      return g_print("Error: Orientation not found.\n");
   }
+
+  sprintf(orientation_text, "%d", (gint) orientation);
+  write_setting(SET_ORIENTATION, orientation_text);
 }
 
 // orientation panel
-enum orientation orientations[] = { DEFAULT, ROT_RIGHT, REVERSED, ROT_LEFT };
 static void customize_panel_1(struct veikk_option_panel *panel) {
   GtkWidget *label, *grid,
             *rad0, *rad1, *rad2, *rad3;
@@ -63,11 +92,12 @@ static void customize_panel_1(struct veikk_option_panel *panel) {
   gtk_grid_attach(GTK_GRID(grid), rad2, 0, 1, 1, 1);
   gtk_grid_attach(GTK_GRID(grid), rad3, 1, 1, 1, 1);
 
-  // TODO: is there a way to "get a pointer to a constant" (instead of using the orientations array)
-  g_signal_connect(rad0, "toggled", G_CALLBACK(test), &orientations[0]);
-  g_signal_connect(rad1, "toggled", G_CALLBACK(test), &orientations[1]);
-  g_signal_connect(rad2, "toggled", G_CALLBACK(test), &orientations[2]);
-  g_signal_connect(rad3, "toggled", G_CALLBACK(test), &orientations[3]);
+  // TODO: read from sysfs orientation parameter, set with existing value
+
+  g_signal_connect(rad0, "toggled", G_CALLBACK(orientation_radio_callback), (gpointer) ORI_DEFAULT);
+  g_signal_connect(rad1, "toggled", G_CALLBACK(orientation_radio_callback), (gpointer) ORI_ROT_RIGHT);
+  g_signal_connect(rad2, "toggled", G_CALLBACK(orientation_radio_callback), (gpointer) ORI_REVERSED);
+  g_signal_connect(rad3, "toggled", G_CALLBACK(orientation_radio_callback), (gpointer) ORI_ROT_LEFT);
 
   // create a grid pane of the four orientations
   // TODO: add images / graphics
