@@ -1,13 +1,45 @@
 #include <gtk/gtk.h>
 #include <stdlib.h>
 
+// settings enums
+enum orientation { DEFAULT, ROT_RIGHT, REVERSED, ROT_LEFT };
+
 // struct to add another panel
 struct veikk_option_panel {
   const gchar *title;
   GtkWidget *box, **widgets;
 };
 
+// radio button callback
+static void test(GtkRadioButton *rad, gpointer user_data) {
+  enum orientation orientation = *((enum orientation *) user_data);
+
+  // return if toggling off
+  if(!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(rad))) {
+    return;
+  }
+
+  // deal with changing orientation
+  switch(orientation) {
+    case DEFAULT:
+      g_print("Default orientation selected.\n");
+      break;
+    case ROT_RIGHT:
+      g_print("Right orientation selected.\n");
+      break;
+    case REVERSED:
+      g_print("Reversed orientation selected.\n");
+      break;
+    case ROT_LEFT:
+      g_print("Left orientation selected.\n");
+      break;
+    default:
+      g_print("Error: Orientation not found.\n");
+  }
+}
+
 // orientation panel
+enum orientation orientations[] = { DEFAULT, ROT_RIGHT, REVERSED, ROT_LEFT };
 static void customize_panel_1(struct veikk_option_panel *panel) {
   GtkWidget *label, *grid,
             *rad0, *rad1, *rad2, *rad3;
@@ -20,15 +52,22 @@ static void customize_panel_1(struct veikk_option_panel *panel) {
   grid = gtk_grid_new();
   gtk_box_pack_start(GTK_BOX(panel->box), grid, 0, 0, 0);
 
+  // TODO: make this DRY-er
   rad0 = gtk_radio_button_new_with_label(NULL, "Default");
-  rad1 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(rad0), "Orientation 2");
-  rad2 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(rad0), "Orientation 3");
-  rad3 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(rad0), "Orientation 4");
+  rad1 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(rad0), "Rotated right");
+  rad2 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(rad0), "Reversed (left-handed)");
+  rad3 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(rad0), "Rotated left");
 
   gtk_grid_attach(GTK_GRID(grid), rad0, 0, 0, 1, 1);
   gtk_grid_attach(GTK_GRID(grid), rad1, 1, 0, 1, 1);
   gtk_grid_attach(GTK_GRID(grid), rad2, 0, 1, 1, 1);
   gtk_grid_attach(GTK_GRID(grid), rad3, 1, 1, 1, 1);
+
+  // TODO: is there a way to "get a pointer to a constant" (instead of using the orientations array)
+  g_signal_connect(rad0, "toggled", G_CALLBACK(test), &orientations[0]);
+  g_signal_connect(rad1, "toggled", G_CALLBACK(test), &orientations[1]);
+  g_signal_connect(rad2, "toggled", G_CALLBACK(test), &orientations[2]);
+  g_signal_connect(rad3, "toggled", G_CALLBACK(test), &orientations[3]);
 
   // create a grid pane of the four orientations
   // TODO: add images / graphics
