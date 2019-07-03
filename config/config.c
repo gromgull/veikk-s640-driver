@@ -6,7 +6,12 @@ void write_setting(enum setting setting, const char *setting_text) {
   
   switch(setting) {
     case SET_ORIENTATION:
-      sysfs_param_handle = fopen("/sys/module/veikk/parameters/orientation", "w");
+      sysfs_param_handle = fopen("/sys/module/veikk/parameters/orientation",
+                                 "w");
+      break;
+    case SET_MAP_SCREEN:
+      sysfs_param_handle = fopen("/sys/module/veikk/parameters/map_screen",
+                                 "w");
       break;
     default:
       return g_print("Write to other settings not implemented yet.\n");
@@ -54,11 +59,10 @@ static void activate(GtkApplication *app, gpointer user_data) {
     panels[i].box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     customize_panel[i](&panels[i]);
 
-    // add panel to stack
-    gtk_stack_add_titled(GTK_STACK(stack), panels[i].box, panels[i].title, panels[i].title);
+    gtk_stack_add_titled(GTK_STACK(stack), panels[i].box,
+                         panels[i].title, panels[i].title);
   }
 
-  // show
   gtk_widget_show_all(window);
 }
 
