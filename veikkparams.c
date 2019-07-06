@@ -14,17 +14,25 @@ struct veikk_parms veikk_parms = {
 };
 
 // parm ops
+// TODO: change this to update driver parameters
+static int orientation_set_uint(const char *val,
+                                const struct kernel_param *kp) {
+
+    printk(KERN_INFO "Hello, world! %s", val);
+
+    return param_set_uint(val, kp);
+}
 static const struct kernel_param_ops orientation_ops = {
-    .set = &param_set_uint,
-    .get = &param_get_uint,
+    .set = orientation_set_uint,
+    .get = param_get_uint,
 };
 static const struct kernel_param_ops screen_map_ops = {
-    .set = &param_set_uint,
-    .get = &param_get_uint
+    .set = param_set_uint,
+    .get = param_get_uint
 };
 static const struct kernel_param_ops pressure_map_ops = {
-        .set = &param_set_uint,
-        .get = &param_get_uint
+    .set = param_set_uint,
+    .get = param_get_uint
 };
 
 // create module parms
