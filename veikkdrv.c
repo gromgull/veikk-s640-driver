@@ -8,6 +8,15 @@
 // currently arbitrary, change later
 #define VEIKK_PKGLEN_MAX  361
 
+// start node to hold ll of input_dev structs
+// TODO: would be nicer to have this be a pointer,
+//       but not sure where to initialize it
+//       (a macro steals the module_init fn)
+struct input_dev_llnode input_dev_llnode_start = {
+    .next = NULL,
+    .dev = NULL
+};
+
 // struct for user interface
 struct veikk_vei {
     struct input_dev *pen_input;
@@ -78,10 +87,25 @@ void veikk_vei_irq(struct veikk_vei *veikk_vei, size_t len) {
     //  x_out = (x_out * (bounds_map[2] - bounds_map[0]) + 32767 * bounds_map[0]) / 100;
     //  y_out = (y_out * (bounds_map[3] - bounds_map[1]) + 32767 * bounds_map[1]) / 100;
     // if rectangle width and height are 0, use default mapping
-    if(!veikk_parms.da_width && !veikk_parms.da_height) {
-        printk(KERN_INFO "Hello, world!");
-    }
-    printk(KERN_INFO "Not hello worrld");
+//    if(!veikk_parms.da_width && !veikk_parms.da_height) {
+
+//    if(veikk_parms.da_width && veikk_parms.da_height) {
+//        int x_min = 0 - veikk_parms.da_x * 32768 / veikk_parms.da_width;
+//        int y_min = 0 - veikk_parms.da_y * 32768 / veikk_parms.da_height;
+//        int screen_width = veikk_parms.screen_width * 32768 / veikk_parms.da_width;
+//        int screen_height = veikk_parms.screen_height * 32768 / veikk_parms.da_height;
+//        input_set_abs_params(input_dev_test, ABS_X, x_min, x_min + screen_width, 0, 0);
+//        input_set_abs_params(input_dev_test, ABS_Y, y_min, y_min + screen_height, 0, 0);
+//        printk(KERN_INFO "testing testing %i %i %i %i",
+//                x_min, y_min,
+//                screen_width, screen_height);
+//    }
+
+        printk(KERN_INFO "%i %i %i %i %i %i",
+                veikk_parms.da_x, veikk_parms.da_y,
+                veikk_parms.da_width, veikk_parms.da_height,
+                veikk_parms.screen_width, veikk_parms.screen_height);
+//    }
 
 //    (*map_xy)(&x_out, &y_out);
 
@@ -125,16 +149,39 @@ void veikk_vei_irq(struct veikk_vei *veikk_vei, size_t len) {
 }
 static int veikk_open(struct input_dev *dev) {
     struct veikk *veikk = input_get_drvdata(dev);
+    struct input_dev_llnode *input_dev_llnode_new;
+
+    // add to global ll of input_dev
+    input_dev_llnode_new = (struct input_dev_llnode *)
+                           kmalloc(sizeof(struct input_dev_llnode), GFP_KERNEL);
+    input_dev_llnode_new->next = input_dev_llnode_start.next;
+    input_dev_llnode_new->dev = dev;
+    input_dev_llnode_start.next = input_dev_llnode_new;
+
+    // TODO: for testing, remove when ready
+    printk("TESTING INSIDE VEIKK_OPEN");
 
     return hid_hw_open(veikk->hdev);
 }
 static void veikk_close(struct input_dev *dev) {
     struct veikk *veikk = input_get_drvdata(dev);
+    struct input_dev_llnode *delete_node, *prev_node;
+
+    // remove from global ll of input_dev
+    delete_node = &input_dev_llnode_start;
+    while((prev_node = delete_node, delete_node = delete_node->next)->dev
+          != dev);
+    prev_node->next = delete_node->next;
+    kfree(delete_node);
+
+    // TODO: for testing, remove when ready
+    printk("TESTING INSIDE VEIKK_CLOSE");
 
     if(veikk->hdev)
         hid_hw_close(veikk->hdev);
 }
 int veikk_setup_pen_input_capabilities(struct input_dev *input_dev, struct veikk_vei *veikk_vei) {
+//    input_dev_test = input_dev;
     input_dev->evbit[0] |= BIT_MASK(EV_KEY) | BIT_MASK(EV_ABS);
 
     __set_bit(INPUT_PROP_DIRECT, input_dev->propbit);
@@ -144,7 +191,7 @@ int veikk_setup_pen_input_capabilities(struct input_dev *input_dev, struct veikk
     __set_bit(BTN_STYLUS2, input_dev->keybit);
 
     // TODO: these are hardcoded to fit the S640, adjust for later
-    input_set_abs_params(input_dev, ABS_X, 0, 32767, 0, 0);
+    input_set_abs_params(input_dev, ABS_X, -32768, 32767, 0, 0);
     input_set_abs_params(input_dev, ABS_Y, 0, 32767, 0, 0);
     input_set_abs_params(input_dev, ABS_PRESSURE, 0, 8191, 0, 0);
 
@@ -285,6 +332,8 @@ fail:
 }
 
 // module functions
+// TODO; remove; for testing
+//static int probe_count = 0;
 static int veikk_probe(struct hid_device *hdev, const struct hid_device_id *id) {
     struct usb_interface *intf = to_usb_interface(hdev->dev.parent);
     struct usb_device *dev = interface_to_usbdev(intf);

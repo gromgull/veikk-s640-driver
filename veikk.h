@@ -21,4 +21,11 @@ struct veikk_parms {
 };
 extern struct veikk_parms veikk_parms;
 
+// very simple implementation of linked list for input devices
+struct input_dev_llnode {
+    struct input_dev_llnode *next;
+    struct input_dev *dev;
+};
+extern struct input_dev_llnode input_dev_llnode_start;
+
 #endif //VEIKK_S640_DRIVER_VEIKK_H

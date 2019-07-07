@@ -60,6 +60,37 @@ static int screen_map_set(const char *val, const struct kernel_param *kp) {
     if(i != 6)
         return -EINVAL;
 
+    // to prevent divide by zero errors
+    // TODO: replace this with other verifications
+    if(!veikk_parms.da_width || !veikk_parms.da_height) {
+        return 0;
+    }
+
+    // TODO: use these values to change the screen mapping
+    //       unregister and re-register device with new bounds
+    // TODO: add in tablet mapping parameters
+    int x_min = 0 - veikk_parms.da_x * 32768 / veikk_parms.da_width;
+    int y_min = 0 - veikk_parms.da_y * 32768 / veikk_parms.da_height;
+    int screen_width = veikk_parms.screen_width * 32768 / veikk_parms.da_width;
+    int screen_height = veikk_parms.screen_height * 32768 / veikk_parms.da_height;
+
+    struct input_dev_llnode *input_dev_iter = &input_dev_llnode_start;
+    while((input_dev_iter = input_dev_iter->next) != NULL) {
+        input_set_abs_params(input_dev_iter->dev,
+                             ABS_X, x_min, x_min + screen_width, 0, 0);
+        input_set_abs_params(input_dev_iter->dev,
+                             ABS_Y, y_min, y_min + screen_height, 0, 0);
+
+        // TODO: remove (for testing)
+        printk(KERN_INFO "Hello, world! Inside iter loop");
+    }
+
+    // reinit driver with new parameters
+    printk(KERN_INFO "testing testing %i %i %i %i",
+//            error,
+            x_min, y_min,
+            screen_width, screen_height);
+
     return 0;
 }
 static int screen_map_get(char *val, const struct kernel_param *kp) {
