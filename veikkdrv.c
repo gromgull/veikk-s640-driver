@@ -84,18 +84,24 @@ void veikk_vei_irq(struct veikk_vei *veikk_vei, size_t len) {
 
     // map to section of screen
     // right now bounds_map are in percents, so awkward calculation
-    //  x_out = (x_out * (bounds_map[2] - bounds_map[0]) + 32767 * bounds_map[0]) / 100;
-    //  y_out = (y_out * (bounds_map[3] - bounds_map[1]) + 32767 * bounds_map[1]) / 100;
+    //  x_out = (x_out * (bounds_map[2] - bounds_map[0]) + 32767 * bounds_map[0])
+    //          / 100;
+    //  y_out = (y_out * (bounds_map[3] - bounds_map[1]) + 32767 * bounds_map[1])
+    //          / 100;
     // if rectangle width and height are 0, use default mapping
 //    if(!veikk_parms.da_width && !veikk_parms.da_height) {
 
 //    if(veikk_parms.da_width && veikk_parms.da_height) {
 //        int x_min = 0 - veikk_parms.da_x * 32768 / veikk_parms.da_width;
 //        int y_min = 0 - veikk_parms.da_y * 32768 / veikk_parms.da_height;
-//        int screen_width = veikk_parms.screen_width * 32768 / veikk_parms.da_width;
-//        int screen_height = veikk_parms.screen_height * 32768 / veikk_parms.da_height;
-//        input_set_abs_params(input_dev_test, ABS_X, x_min, x_min + screen_width, 0, 0);
-//        input_set_abs_params(input_dev_test, ABS_Y, y_min, y_min + screen_height, 0, 0);
+//        int screen_width = veikk_parms.screen_width * 32768
+//                           / veikk_parms.da_width;
+//        int screen_height = veikk_parms.screen_height * 32768
+//                            / veikk_parms.da_height;
+//        input_set_abs_params(input_dev_test, ABS_X, x_min,
+//                             x_min + screen_width, 0, 0);
+//        input_set_abs_params(input_dev_test, ABS_Y, y_min,
+//                             y_min + screen_height, 0, 0);
 //        printk(KERN_INFO "testing testing %i %i %i %i",
 //                x_min, y_min,
 //                screen_width, screen_height);
@@ -126,7 +132,8 @@ void veikk_vei_irq(struct veikk_vei *veikk_vei, size_t len) {
         case 3:
             pressure_out = pressure_raw * pressure_raw / 8191;
             break;
-        // linear mapping (reduced intensity for full pressure, suggested by @artixnous)
+        // linear mapping (reduced intensity for full pressure,
+        //                 suggested by @artixnous)
         case 4:
             pressure_out = (pressure_raw < 6144) ? 4 * pressure_raw / 3 : 8191;
             break;
@@ -180,7 +187,8 @@ static void veikk_close(struct input_dev *dev) {
     if(veikk->hdev)
         hid_hw_close(veikk->hdev);
 }
-int veikk_setup_pen_input_capabilities(struct input_dev *input_dev, struct veikk_vei *veikk_vei) {
+int veikk_setup_pen_input_capabilities(struct input_dev *input_dev,
+                                       struct veikk_vei *veikk_vei) {
 //    input_dev_test = input_dev;
     input_dev->evbit[0] |= BIT_MASK(EV_KEY) | BIT_MASK(EV_ABS);
 
@@ -204,7 +212,8 @@ int veikk_setup_pen_input_capabilities(struct input_dev *input_dev, struct veikk
 }
 
 /* No touch(screen?) input capabilities on the S640
-int veikk_setup_touch_input_capabilities(struct input_dev *input_dev, struct veikk_vei *veikk_vei) {
+int veikk_setup_touch_input_capabilities(struct input_dev *input_dev,
+                                         struct veikk_vei *veikk_vei) {
 
   input_dev->evbit[0] |= BIT_MASK(EV_KEY) | BIT_MASK(EV_ABS);
 
@@ -214,7 +223,9 @@ int veikk_setup_touch_input_capabilities(struct input_dev *input_dev, struct vei
 
   input_set_abs_params(input_dev, ABS_X, 0, 32767, 0, 0);
   input_set_abs_params(input_dev, ABS_Y, 0, 32767, 0, 0);
-  input_abs_set_res(input_dev, ABS_X, 100);   // TODO: get actual resolution (this is just a guess for now, not sure of actual value)
+  // TODO: get actual resolution
+  //  (this is just a guess for now, not sure of actual value)
+  input_abs_set_res(input_dev, ABS_X, 100);
   input_abs_set_res(input_dev, ABS_Y, 100);
 
   return 0;
@@ -245,12 +256,15 @@ static struct input_dev *veikk_allocate_input(struct veikk *veikk) {
 static int veikk_allocate_inputs(struct veikk *veikk) {
     struct veikk_vei *veikk_vei = &(veikk->veikk_vei);
 
-    // right now only a pen is used (S640 only uses pen events; touch and pad don't do anything)
+    // right now only a pen is used (S640 only uses pen events;
+    // touch and pad don't do anything)
     veikk_vei->pen_input = veikk_allocate_input(veikk);
     veikk_vei->touch_input = veikk_allocate_input(veikk);
     veikk_vei->pad_input = veikk_allocate_input(veikk);
 
-    if(!veikk_vei->pen_input || !veikk_vei->touch_input || !veikk_vei->pad_input)
+    if(!veikk_vei->pen_input
+       || !veikk_vei->touch_input
+       || !veikk_vei->pad_input)
         return -ENOMEM;
 
     veikk_vei->pen_input->name = "Veikk S640 Pen";
@@ -334,7 +348,8 @@ fail:
 // module functions
 // TODO; remove; for testing
 //static int probe_count = 0;
-static int veikk_probe(struct hid_device *hdev, const struct hid_device_id *id) {
+static int veikk_probe(struct hid_device *hdev,
+                       const struct hid_device_id *id) {
     struct usb_interface *intf = to_usb_interface(hdev->dev.parent);
     struct usb_device *dev = interface_to_usbdev(intf);
     struct veikk *veikk;
@@ -390,7 +405,10 @@ static void veikk_remove(struct hid_device *hdev) {
 
     hid_set_drvdata(hdev, NULL);
 }
-static int veikk_raw_event(struct hid_device *hdev, struct hid_report *report, u8 *raw_data, int size) {
+static int veikk_raw_event(struct hid_device *hdev,
+                           struct hid_report *report,
+                           u8 *raw_data,
+                           int size) {
     struct veikk *veikk = hid_get_drvdata(hdev);
 
     if (size > VEIKK_PKGLEN_MAX)

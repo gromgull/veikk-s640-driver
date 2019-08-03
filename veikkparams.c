@@ -14,7 +14,8 @@ struct veikk_parms veikk_parms = {
 };
 
 // parm ops
-static int orientation_set(const char *val, const struct kernel_param *kp) {
+static int orientation_set(const char *val,
+                           const struct kernel_param *kp) {
     if(strlen(val) != 1
        || val[0] > '3'
        || val[0] < '0') {
@@ -29,7 +30,8 @@ static const struct kernel_param_ops orientation_ops = {
 };
 
 #define MAX_PARM_LEN 10
-static int screen_map_set(const char *val, const struct kernel_param *kp) {
+static int screen_map_set(const char *val,
+                          const struct kernel_param *kp) {
     unsigned short i;
     char num_tok[MAX_PARM_LEN], *tok_end;
     const char *tok_start, delim = ',';
@@ -72,8 +74,13 @@ static int screen_map_set(const char *val, const struct kernel_param *kp) {
     int x_min = 0 - veikk_parms.da_x * 32768 / veikk_parms.da_width;
     int y_min = 0 - veikk_parms.da_y * 32768 / veikk_parms.da_height;
     int screen_width = veikk_parms.screen_width * 32768 / veikk_parms.da_width;
-    int screen_height = veikk_parms.screen_height * 32768 / veikk_parms.da_height;
+    int screen_height = veikk_parms.screen_height * 32768
+                        / veikk_parms.da_height;
 
+    // new attempt: recreate input device from scratch
+
+
+    /* old attempt: set input params
     struct input_dev_llnode *input_dev_iter = &input_dev_llnode_start;
     while((input_dev_iter = input_dev_iter->next) != NULL) {
         input_set_abs_params(input_dev_iter->dev,
@@ -83,7 +90,7 @@ static int screen_map_set(const char *val, const struct kernel_param *kp) {
 
         // TODO: remove (for testing)
         printk(KERN_INFO "Hello, world! Inside iter loop");
-    }
+    }*/
 
     // reinit driver with new parameters
     printk(KERN_INFO "testing testing %i %i %i %i",
