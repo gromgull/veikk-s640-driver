@@ -2,7 +2,7 @@ MOD_NAME := veikk
 BUILD_DIR := /lib/modules/$(shell uname -r)/build
 
 obj-m := $(MOD_NAME).o
-$(MOD_NAME)-objs := veikkdrv.o veikkparams.o
+$(MOD_NAME)-objs := veikkdrv.o veikkparams.o llist.o
 
 all:
 	make -C $(BUILD_DIR) M=$(CURDIR) modules

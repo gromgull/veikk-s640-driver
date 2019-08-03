@@ -12,6 +12,7 @@
 #include <linux/usb/input.h>
 #include <linux/power_supply.h>
 #include <asm/unaligned.h>
+#include "llist.h"
 
 struct veikk_parms {
     unsigned int orientation,
@@ -28,4 +29,6 @@ struct input_dev_llnode {
 };
 extern struct input_dev_llnode input_dev_llnode_start;
 
+// list for veikks
+extern struct llist *veikk_list;
 #endif //VEIKK_S640_DRIVER_VEIKK_H

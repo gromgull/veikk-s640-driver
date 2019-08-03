@@ -78,7 +78,10 @@ static int screen_map_set(const char *val,
                         / veikk_parms.da_height;
 
     // new attempt: recreate input device from scratch
-
+    // follows same procedure from main script
+    // not ideal b/c a new device has to be created but it's this vs. more
+    // calculation-intensive redraws for every data
+    printk(KERN_INFO "Veikk length: %d\n", veikk_list->length);
 
     /* old attempt: set input params
     struct input_dev_llnode *input_dev_iter = &input_dev_llnode_start;
@@ -127,7 +130,7 @@ module_param_cb(screen_map, &screen_map_ops, NULL, 0660);
 //module_param_cb(da_y, &screen_map_ops, &veikk_parms.da_y, 0660);
 //module_param_cb(da_width, &screen_map_ops, &veikk_parms.da_width, 0660);
 //module_param_cb(da_height, &screen_map_ops, &veikk_parms.da_height, 0660);
-//module_param_cb(screen_width, &screen_map_ops, &veikk_parms.screen_width, 0660);
+//module_param_cb(screen_width, &screen_map_ops, &veikk_parms.screen_width,0660);
 //module_param_cb(screen_height, &screen_map_ops, &veikk_parms.screen_height,
 //                                                0660);
 module_param_cb(pressure_map, &pressure_map_ops, &veikk_parms.pressure_map,

@@ -16,6 +16,8 @@ struct input_dev_llnode input_dev_llnode_start = {
     .next = NULL,
     .dev = NULL
 };
+// will be created on first probe
+struct llist *veikk_list = NULL;
 
 // struct for user interface
 struct veikk_vei {
@@ -385,6 +387,11 @@ static int veikk_probe(struct hid_device *hdev,
     if(error)
         goto fail;
 
+    // TODO: testing
+    if(veikk_list == NULL)
+        veikk_list = llist_create();
+    llist_append(veikk_list, veikk);
+
     return 0;
 
 fail:
@@ -396,6 +403,9 @@ fail:
 static void veikk_remove(struct hid_device *hdev) {
     struct veikk *veikk = hid_get_drvdata(hdev);
     struct veikk_vei *veikk_vei = &veikk->veikk_vei;
+
+    // TODO: testing
+    llist_remove(veikk_list, veikk);
 
     printk(KERN_INFO "Inside veikk_remove()");
 
