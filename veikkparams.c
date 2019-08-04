@@ -83,6 +83,30 @@ static int screen_map_set(const char *val,
     // calculation-intensive redraws for every data
     printk(KERN_INFO "Veikk length: %d\n", veikk_list->length);
 
+    struct llnode *iter = veikk_list->start;
+    int error = 0;
+    while((iter = iter->next) != NULL) {
+        printk(KERN_INFO "Looking at another struct veikk\n");
+        struct veikk *veikk = (struct veikk *) iter->data;
+
+        printk(KERN_INFO "Removing old inputs\n");
+        input_free_device(veikk->veikk_vei.pen_input);
+        veikk->veikk_vei.pen_input = NULL;
+
+        printk(KERN_INFO "Entering veikk_allocate_inputs()\n");
+        error = veikk_allocate_inputs(veikk);
+        if(error)
+            goto fail;
+        printk(KERN_INFO "Entering veikk_register_inputs()\n");
+        error = veikk_register_inputs(veikk);
+        if(error)
+            goto fail;
+        printk(KERN_INFO "Entering hid_hw_start()\n");
+        error = hid_hw_start(veikk->hdev, HID_CONNECT_HIDRAW);
+        if(error)
+            goto fail;
+    }
+
     /* old attempt: set input params
     struct input_dev_llnode *input_dev_iter = &input_dev_llnode_start;
     while((input_dev_iter = input_dev_iter->next) != NULL) {
@@ -102,6 +126,10 @@ static int screen_map_set(const char *val,
             screen_width, screen_height);
 
     return 0;
+
+fail:
+    printk(KERN_ERR "Fail: %d\n", error);
+    return -1;
 }
 static int screen_map_get(char *val, const struct kernel_param *kp) {
     return sprintf(val, "%i,%i,%i,%i,%i,%i\n",

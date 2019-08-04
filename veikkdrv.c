@@ -5,9 +5,6 @@
 
 #include "veikk.h"
 
-// currently arbitrary, change later
-#define VEIKK_PKGLEN_MAX  361
-
 // start node to hold ll of input_dev structs
 // TODO: would be nicer to have this be a pointer,
 //       but not sure where to initialize it
@@ -18,25 +15,6 @@ struct input_dev_llnode input_dev_llnode_start = {
 };
 // will be created on first probe
 struct llist *veikk_list = NULL;
-
-// struct for user interface
-struct veikk_vei {
-    struct input_dev *pen_input;
-    struct input_dev *touch_input;
-    struct input_dev *pad_input;
-    // TODO: can this be deleted? what is pen_fifo for?
-    //  will delete when able to test
-    struct kfifo_rec_ptr_2 pen_fifo;
-    unsigned char data[VEIKK_PKGLEN_MAX];
-};
-
-// struct for hardware interface
-struct veikk {
-    struct usb_device *usbdev;
-    struct usb_interface *intf;
-    struct veikk_vei veikk_vei;
-    struct hid_device *hdev;
-};
 
 static const struct hid_device_id id_table[] = {
     { HID_USB_DEVICE(0x2feb, 0x0001) }, // S640
@@ -109,10 +87,10 @@ void veikk_vei_irq(struct veikk_vei *veikk_vei, size_t len) {
 //                screen_width, screen_height);
 //    }
 
-        printk(KERN_INFO "%i %i %i %i %i %i",
+        /*printk(KERN_INFO "%i %i %i %i %i %i",
                 veikk_parms.da_x, veikk_parms.da_y,
                 veikk_parms.da_width, veikk_parms.da_height,
-                veikk_parms.screen_width, veikk_parms.screen_height);
+                veikk_parms.screen_width, veikk_parms.screen_height);*/
 //    }
 
 //    (*map_xy)(&x_out, &y_out);
@@ -161,11 +139,11 @@ static int veikk_open(struct input_dev *dev) {
     struct input_dev_llnode *input_dev_llnode_new;
 
     // add to global ll of input_dev
-    input_dev_llnode_new = (struct input_dev_llnode *)
-                           kmalloc(sizeof(struct input_dev_llnode), GFP_KERNEL);
-    input_dev_llnode_new->next = input_dev_llnode_start.next;
-    input_dev_llnode_new->dev = dev;
-    input_dev_llnode_start.next = input_dev_llnode_new;
+//    input_dev_llnode_new = (struct input_dev_llnode *)
+//                           kmalloc(sizeof(struct input_dev_llnode), GFP_KERNEL);
+//    input_dev_llnode_new->next = input_dev_llnode_start.next;
+//    input_dev_llnode_new->dev = dev;
+//    input_dev_llnode_start.next = input_dev_llnode_new;
 
     // TODO: for testing, remove when ready
     printk("TESTING INSIDE VEIKK_OPEN");
@@ -177,11 +155,11 @@ static void veikk_close(struct input_dev *dev) {
     struct input_dev_llnode *delete_node, *prev_node;
 
     // remove from global ll of input_dev
-    delete_node = &input_dev_llnode_start;
-    while((prev_node = delete_node, delete_node = delete_node->next)->dev
-          != dev);
-    prev_node->next = delete_node->next;
-    kfree(delete_node);
+//    delete_node = &input_dev_llnode_start;
+//    while((prev_node = delete_node, delete_node = delete_node->next)->dev
+//          != dev);
+//    prev_node->next = delete_node->next;
+//    kfree(delete_node);
 
     // TODO: for testing, remove when ready
     printk("TESTING INSIDE VEIKK_CLOSE");
@@ -201,8 +179,26 @@ int veikk_setup_pen_input_capabilities(struct input_dev *input_dev,
     __set_bit(BTN_STYLUS2, input_dev->keybit);
 
     // TODO: these are hardcoded to fit the S640, adjust for later
-    input_set_abs_params(input_dev, ABS_X, -32768, 32767, 0, 0);
-    input_set_abs_params(input_dev, ABS_Y, 0, 32767, 0, 0);
+//    input_set_abs_params(input_dev, ABS_X, 0, 32767, 0, 0);
+//    input_set_abs_params(input_dev, ABS_Y, 0, 32767, 0, 0);
+//    input_set_abs_params(input_dev, ABS_PRESSURE, 0, 8191, 0, 0);
+    int x_min, y_min, screen_width, screen_height;
+    if(!veikk_parms.da_width || !veikk_parms.da_height) {
+        x_min = y_min = 0;
+        screen_width = screen_height = 32768;
+    } else {
+        x_min = 0 - veikk_parms.da_x * 32768 / veikk_parms.da_width;
+        y_min = 0 - veikk_parms.da_y * 32768 / veikk_parms.da_height;
+        screen_width = veikk_parms.screen_width * 32768
+                                                    / veikk_parms.da_width;
+        screen_height = veikk_parms.screen_height * 32768
+                                                    / veikk_parms.da_height;
+    }
+    printk(KERN_INFO "testing testing %i %i %i %i",
+           x_min, y_min,
+           screen_width, screen_height);
+    input_set_abs_params(input_dev, ABS_X, x_min, x_min + screen_width, 0, 0);
+    input_set_abs_params(input_dev, ABS_Y, y_min, y_min + screen_height, 0, 0);
     input_set_abs_params(input_dev, ABS_PRESSURE, 0, 8191, 0, 0);
 
     // TODO: what does this value do? What should it be set to?
@@ -255,7 +251,8 @@ static struct input_dev *veikk_allocate_input(struct veikk *veikk) {
 
     return input_dev;
 }
-static int veikk_allocate_inputs(struct veikk *veikk) {
+// static int veikk_allocate_inputs(struct veikk *veikk) {
+int veikk_allocate_inputs(struct veikk *veikk) {
     struct veikk_vei *veikk_vei = &(veikk->veikk_vei);
 
     // right now only a pen is used (S640 only uses pen events;
@@ -275,7 +272,8 @@ static int veikk_allocate_inputs(struct veikk *veikk) {
 
     return 0;
 }
-static int veikk_register_inputs(struct veikk *veikk) {
+// static int veikk_register_inputs(struct veikk *veikk) {
+int veikk_register_inputs(struct veikk *veikk) {
     struct input_dev *pen_input_dev, *touch_input_dev, *pad_input_dev;
     struct veikk_vei *veikk_vei = &(veikk->veikk_vei);
     int error = 0;
@@ -441,5 +439,3 @@ static struct hid_driver veikk_driver = {
 module_hid_driver(veikk_driver);
 
 MODULE_LICENSE("GPL");
-
-// TODO: clean up file, enforce max line length 80
